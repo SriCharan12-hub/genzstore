@@ -35,4 +35,3 @@ mongoose.connect(MONGODB_URI, connectionOptions)
     console.error('❌ MongoDB Connection Error:', err);
     process.exit(1);
   });
-});

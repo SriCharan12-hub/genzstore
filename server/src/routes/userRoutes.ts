@@ -92,4 +92,79 @@ router.get('/wishlist', protect, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/users/address — Add a new address
+router.post('/address', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.user!.id);
+    if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
+    
+    const { street, city, state, pincode, country } = req.body;
+    
+    // Simple validation
+    if (!street || !city || !state || !pincode) {
+      res.status(400).json({ success: false, message: 'All address fields are required' });
+      return;
+    }
+
+    if (!user.addresses) user.addresses = [];
+    user.addresses.push({ street, city, state, pincode, country: country || 'India' });
+    
+    await user.save();
+    res.status(201).json({ success: true, data: user.addresses });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
+  }
+});
+
+// PUT /api/users/address/:addressId — Update an address
+router.put('/address/:addressId', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.user!.id);
+    if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
+    
+    const addressId = req.params.addressId;
+    const { street, city, state, pincode, country } = req.body;
+    
+    const address = (user.addresses as any[]).find(addr => addr._id.toString() === addressId);
+    if (!address) {
+      res.status(404).json({ success: false, message: 'Address not found' });
+      return;
+    }
+    
+    if (street) address.street = street;
+    if (city) address.city = city;
+    if (state) address.state = state;
+    if (pincode) address.pincode = pincode;
+    if (country) address.country = country;
+    
+    await user.save();
+    res.status(200).json({ success: true, data: user.addresses });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
+  }
+});
+
+// DELETE /api/users/address/:addressId — Delete an address
+router.delete('/address/:addressId', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.user!.id);
+    if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
+    
+    const addressId = req.params.addressId;
+    const initialLength = user.addresses?.length || 0;
+    
+    user.addresses = user.addresses?.filter(addr => (addr as any)._id.toString() !== addressId);
+    
+    if (user.addresses?.length === initialLength) {
+      res.status(404).json({ success: false, message: 'Address not found' });
+      return;
+    }
+    
+    await user.save();
+    res.status(200).json({ success: true, data: user.addresses });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
+  }
+});
+
 export default router;

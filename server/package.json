@@ -7,7 +7,10 @@
     "dev": "nodemon --watch src --ext ts,js --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "set-admin": "ts-node scripts/set-admin.ts"
+    "set-admin": "ts-node scripts/set-admin.ts",
+    "seed": "ts-node src/seeds/products.ts",
+    "check-products": "ts-node src/scripts/check-products.ts",
+    "clear-orders": "ts-node src/scripts/clear-orders.ts"
   },
   "keywords": [],
   "author": "",
