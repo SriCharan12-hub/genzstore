@@ -44,9 +44,6 @@ export const authLimiter = createRateLimiter(5, 15 * 60 * 1000);
 // Signup rate limiter - 3 new accounts per hour per IP
 export const signupLimiter = createRateLimiter(3, 60 * 60 * 1000);
 
-// Password reset rate limiter - 3 attempts per 30 minutes
-export const passwordResetLimiter = createRateLimiter(3, 30 * 60 * 1000);
-
 // Payment rate limiter - 10 payment attempts per 5 minutes
 export const paymentLimiter = createRateLimiter(10, 5 * 60 * 1000);
 

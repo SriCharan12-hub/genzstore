@@ -19,7 +19,7 @@ router.post('/', protect, orderLimiter, async (req: AuthRequest, res: Response) 
       res.status(400).json({ success: false, message: 'Complete shipping address is required' });
       return;
     }
-    if (!paymentMethod || !['stripe', 'razorpay', 'cod'].includes(paymentMethod)) {
+    if (!paymentMethod || !['razorpay', 'cod'].includes(paymentMethod)) {
       res.status(400).json({ success: false, message: 'Valid payment method is required' });
       return;
     }

@@ -20,7 +20,7 @@ export interface IOrder extends Document {
     pincode: string;
     country: string;
   };
-  paymentMethod: 'stripe' | 'razorpay' | 'cod';
+  paymentMethod: 'razorpay' | 'cod';
   paymentResult?: {
     id: string;
     status: string;
@@ -60,7 +60,7 @@ const OrderSchema = new Schema<IOrder>(
       pincode: { type: String, required: true },
       country: { type: String, required: true, default: 'India' },
     },
-    paymentMethod: { type: String, enum: ['stripe', 'razorpay', 'cod'], required: true },
+    paymentMethod: { type: String, enum: ['razorpay', 'cod'], required: true },
     paymentResult: {
       id: String,
       status: String,
