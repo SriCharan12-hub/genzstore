@@ -66,18 +66,103 @@ router.get('/', searchLimiter, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/products/detail/:id — Get product by MongoDB ID
+router.get('/detail/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    let { id } = req.params;
+    if (typeof id !== 'string') {
+      res.status(400).json({ success: false, message: 'Invalid id parameter' });
+      return;
+    }
+    
+    const cacheKey = `product-detail:${id}`;
+    
+    if (redisClient) {
+      try {
+        const cached = await redisClient.get(cacheKey);
+        if (cached) { 
+          res.status(200).json({ success: true, source: 'cache', data: JSON.parse(cached) }); 
+          return; 
+        }
+      } catch (cacheError) {
+        console.warn('Cache read error:', cacheError);
+      }
+    }
+    
+    // Find product by MongoDB _id
+    const product = await Product.findById(id).populate('reviews.user', 'name avatar');
+    
+    if (!product) { 
+      res.status(404).json({ success: false, message: 'Product not found' }); 
+      return; 
+    }
+    
+    // Only show inactive products to admin users
+    if (!product.isActive && req.user?.role !== 'admin') {
+      res.status(404).json({ success: false, message: 'Product not found' }); 
+      return;
+    }
+    
+    if (redisClient) {
+      try {
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(product));
+      } catch (cacheError) {
+        console.warn('Cache write error:', cacheError);
+      }
+    }
+    
+    res.status(200).json({ success: true, data: product });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
+  }
+});
+
 // GET /api/products/:slug
 router.get('/:slug', async (req: AuthRequest, res: Response) => {
   try {
-    const { slug } = req.params;
-    const cacheKey = `product:${slug}`;
-    if (redisClient) {
-      const cached = await redisClient.get(cacheKey);
-      if (cached) { res.status(200).json({ success: true, source: 'cache', data: JSON.parse(cached) }); return; }
+    let { slug } = req.params;
+    if (typeof slug !== 'string') {
+      res.status(400).json({ success: false, message: 'Invalid slug parameter' });
+      return;
     }
-    const product = await Product.findOne({ slug, isActive: true }).populate('reviews.user', 'name avatar');
-    if (!product) { res.status(404).json({ success: false, message: 'Product not found' }); return; }
-    if (redisClient) await redisClient.setEx(cacheKey, 3600, JSON.stringify(product));
+    
+    const normalizedSlug = slug.toLowerCase();
+    const cacheKey = `product:${normalizedSlug}`;
+    
+    if (redisClient) {
+      try {
+        const cached = await redisClient.get(cacheKey);
+        if (cached) { 
+          res.status(200).json({ success: true, source: 'cache', data: JSON.parse(cached) }); 
+          return; 
+        }
+      } catch (cacheError) {
+        console.warn('Cache read error:', cacheError);
+      }
+    }
+    
+    // Find product by slug (case-insensitive) - show if active OR if Admin is viewing
+    const product = await Product.findOne({ slug: normalizedSlug }).populate('reviews.user', 'name avatar');
+    
+    if (!product) { 
+      res.status(404).json({ success: false, message: 'Product not found' }); 
+      return; 
+    }
+    
+    // Only show inactive products to admin users
+    if (!product.isActive && req.user?.role !== 'admin') {
+      res.status(404).json({ success: false, message: 'Product not found' }); 
+      return;
+    }
+    
+    if (redisClient) {
+      try {
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(product));
+      } catch (cacheError) {
+        console.warn('Cache write error:', cacheError);
+      }
+    }
+    
     res.status(200).json({ success: true, data: product });
   } catch (error: unknown) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
