@@ -10,7 +10,8 @@
     "set-admin": "ts-node scripts/set-admin.ts",
     "seed": "ts-node src/seeds/products.ts",
     "check-products": "ts-node src/scripts/check-products.ts",
-    "clear-orders": "ts-node src/scripts/clear-orders.ts"
+    "clear-orders": "ts-node src/scripts/clear-orders.ts",
+    "delete-test-users": "ts-node src/scripts/delete-test-users.ts"
   },
   "keywords": [],
   "author": "",
@@ -32,8 +33,7 @@
     "multer": "^2.1.1",
     "nodemailer": "^8.0.4",
     "razorpay": "^2.9.6",
-    "redis": "^5.11.0",
-    "stripe": "^21.0.1"
+    "redis": "^5.11.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

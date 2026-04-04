@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import sendEmail from '../utils/sendEmail';
 import { signToken } from '../utils/token';
-import { authLimiter, signupLimiter, passwordResetLimiter } from '../middleware/rateLimiter';
+import { authLimiter, signupLimiter } from '../middleware/rateLimiter';
 import {
   validateEmail as validateEmailRule,
   validatePassword as validatePasswordRule,
@@ -25,19 +25,7 @@ if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'production') {
   console.warn('⚠️  WARNING: JWT_SECRET not set. Using default development key. Set NEXT_PUBLIC_API_URL in production!');
 }
 
-// Helper to sign JWT
-// signToken imported from utils/token
-
-// Simple validation helper
-const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-const validatePassword = (password: string): string | null => {
-  if (!password || password.length < 6) return 'Password must be at least 6 characters';
-  return null;
-};
+// Validation is done via middleware validators
 
 // POST /api/auth/register
 router.post(

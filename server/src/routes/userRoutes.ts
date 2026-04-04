@@ -1,7 +1,7 @@
 import express, { Response } from 'express';
 import User from '../models/User';
 import Product from '../models/Product';
-import { protect, AuthRequest } from '../middleware/auth';
+import { protect, adminOnly, AuthRequest } from '../middleware/auth';
 import { generalLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
@@ -162,6 +162,49 @@ router.delete('/address/:addressId', protect, async (req: AuthRequest, res: Resp
     
     await user.save();
     res.status(200).json({ success: true, data: user.addresses });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
+  }
+});
+
+// ===== ADMIN ONLY ROUTES =====
+
+// GET /api/users — Get all users (admin only)
+router.get('/', protect, adminOnly, async (_req: AuthRequest, res: Response) => {
+  try {
+    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: users });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
+  }
+});
+
+// PUT /api/users/:id/role — Update user role (admin only)
+router.put('/:id/role', protect, adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { role } = req.body;
+    
+    if (!role || !['user', 'admin'].includes(role)) {
+      res.status(400).json({ success: false, message: 'Invalid role. Must be "user" or "admin"' });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: `User "${user.name}" role updated to "${role}"`,
+      data: user 
+    });
   } catch (error: unknown) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
   }
