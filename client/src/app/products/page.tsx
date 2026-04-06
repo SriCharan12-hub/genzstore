@@ -1,0 +1,108 @@
+import type { Metadata } from 'next';
+import ProductCard from '@/components/product/ProductCard';
+
+export const metadata: Metadata = {
+  title: 'Shop All Products | GenZ Store - Premium Streetwear',
+  description: 'Browse our premium streetwear collection. High-quality hoodies, jackets, and accessories. Filter by category, size, and price. Free shipping on orders over $50.',
+  keywords: ['streetwear', 'hoodies', 'jackets', 'urban fashion', 'clothing'],
+  openGraph: {
+    title: 'Shop All Products | GenZ Store',
+    description: 'Premium streetwear collection',
+    type: 'website',
+    images: ['https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=1200'],
+  },
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1000';
+
+async function fetchProducts(searchParams: Record<string, string | undefined>) {
+  try {
+    const url = new URL(`${API_URL}/api/products`);
+    if (searchParams.category) url.searchParams.append('category', searchParams.category);
+    if (searchParams.search) url.searchParams.append('search', searchParams.search);
+    if (searchParams.sort) url.searchParams.append('sort', searchParams.sort);
+    if (searchParams.page) url.searchParams.append('page', searchParams.page);
+    if (searchParams.minPrice) url.searchParams.append('minPrice', searchParams.minPrice);
+    if (searchParams.maxPrice) url.searchParams.append('maxPrice', searchParams.maxPrice);
+
+    console.log('Fetching products from:', url.toString());
+    const res = await fetch(url.toString(), { next: { revalidate: 60 } }); // ISR - revalidate every 60 seconds
+    
+    if (!res.ok) {
+      console.error('Failed to fetch products. Status:', res.status);
+      throw new Error(`Failed to fetch products: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    console.log('Products fetched:', data.data?.length || 0);
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+}
+
+const categories = ['All', 'Hoodies', 'Tees', 'Outerwear', 'Bottoms', 'Accessories', 'Footwear'];
+
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const params = await searchParams;
+  const products = await fetchProducts(params);
+
+  return (
+    <div className="pt-20">
+      {/* Header */}
+      <div className="bg-black text-white px-6 py-16 text-center">
+        <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-gray-400 block mb-3">Premium Collection</span>
+        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter">Shop All</h1>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3 mb-10 pb-6 border-b border-gray-100">
+          {categories.map((cat) => (
+            <a
+              key={cat}
+              href={cat === 'All' ? '/products' : `/products?category=${cat.toLowerCase()}`}
+              className="text-xs font-medium uppercase tracking-[0.1em] px-4 py-2 border border-gray-200 hover:bg-black hover:text-white hover:border-black transition-all"
+            >
+              {cat}
+            </a>
+          ))}
+          <div className="ml-auto flex gap-2">
+            <select className="text-xs border border-gray-200 px-3 py-2 bg-white uppercase tracking-wider outline-none cursor-pointer">
+              <option value="newest">Newest</option>
+              <option value="price-asc">Price: Low-High</option>
+              <option value="price-desc">Price: High-Low</option>
+              <option value="rating">Top Rated</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {products.length > 0 ? (
+            products.map((product: any) => (
+              <ProductCard key={product._id} product={product} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500 text-lg">No products found</p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination placeholder */}
+        <div className="flex justify-center mt-16 gap-2">
+          {[1, 2, 3].map((p) => (
+            <button
+              key={p}
+              className={`w-10 h-10 text-xs font-bold border ${p === 1 ? 'bg-black text-white border-black' : 'border-gray-200 hover:bg-gray-50'} transition-all`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
