@@ -66,7 +66,9 @@ export default function ProductClient({ product, relatedProducts }: { product: a
             className="bg-gray-100 rounded-lg overflow-hidden mb-4"
           >
             <Image
-              src={product.images?.[selectedImage] || product.thumbnail || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600'}
+              src={selectedImage === 0 
+                ? product.thumbnail 
+                : product.images?.[selectedImage - 1] || product.thumbnail || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600'}
               alt={product.name}
               width={600}
               height={600}
@@ -76,16 +78,30 @@ export default function ProductClient({ product, relatedProducts }: { product: a
           </motion.div>
 
           {/* Thumbnails */}
-          <div className="flex gap-3 overflow-x-auto">
-            {(product.images || [product.thumbnail]).map((img: string, idx: number) => (
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {/* Primary Thumbnail */}
+            {product.thumbnail && (
+              <button
+                onClick={() => setSelectedImage(0)}
+                className={`flex-shrink-0 w-20 h-20 rounded border-2 transition-all ${
+                  selectedImage === 0 ? 'border-black' : 'border-gray-200'
+                }`}
+                title="Main thumbnail"
+              >
+                <Image src={product.thumbnail} alt={`${product.name} thumbnail`} width={80} height={80} className="w-full h-full object-cover" />
+              </button>
+            )}
+            
+            {/* Additional Images */}
+            {(product.images || []).map((img: string, idx: number) => (
               <button
                 key={idx}
-                onClick={() => setSelectedImage(idx)}
+                onClick={() => setSelectedImage(idx + 1)}
                 className={`flex-shrink-0 w-20 h-20 rounded border-2 transition-all ${
-                  selectedImage === idx ? 'border-black' : 'border-gray-200'
+                  selectedImage === idx + 1 ? 'border-black' : 'border-gray-200'
                 }`}
               >
-                <Image src={img} alt={`${product.name} ${idx}`} width={80} height={80} className="w-full h-full object-cover" />
+                <Image src={img} alt={`${product.name} ${idx + 1}`} width={80} height={80} className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
@@ -93,20 +109,6 @@ export default function ProductClient({ product, relatedProducts }: { product: a
 
         {/* Details */}
         <div>
-          {/* Rating */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  size={16}
-                  className={i < Math.floor(product.ratings || 0) ? 'fill-black' : 'text-gray-300'}
-                />
-              ))}
-            </div>
-            <span className="text-sm text-gray-600">({product.numReviews || 0} reviews)</span>
-          </div>
-
           <h1 className="text-4xl font-black mb-2">{product.name}</h1>
           <p className="text-gray-600 mb-6">{product.description}</p>
 

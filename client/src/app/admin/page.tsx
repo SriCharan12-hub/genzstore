@@ -46,6 +46,8 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-50 text-red-700',
 };
 
+const categories = ['Hoodies', 'Tees', 'Outerwear', 'Bottoms', 'Accessories', 'Footwear'];
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -734,13 +736,17 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Category *</label>
-                        <input
+                        <select
                           value={form.category}
                           onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                           required
-                          className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black transition-colors"
-                          placeholder="Hoodies"
-                        />
+                          className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white"
+                        >
+                          <option value="" disabled>Select a category</option>
+                          {categories.map((cat) => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Price (₹) *</label>
