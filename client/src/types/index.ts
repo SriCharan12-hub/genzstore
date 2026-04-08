@@ -4,6 +4,11 @@ export interface SizePricing {
   comparePrice?: number;
 }
 
+export interface SizeStock {
+  size: string;
+  quantity: number;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -19,6 +24,7 @@ export interface Product {
   stock: number;
   sizes: string[];
   sizePricing?: SizePricing[];
+  sizeStock?: SizeStock[];
   colors: { name: string; hex: string }[];
   tags: string[];
   isFeatured: boolean;

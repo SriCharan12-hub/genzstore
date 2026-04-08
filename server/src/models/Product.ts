@@ -14,6 +14,11 @@ export interface ISizePricing {
   comparePrice?: number;
 }
 
+export interface ISizeStock {
+  size: string;
+  quantity: number;
+}
+
 export interface IProduct extends Document {
   name: string;
   slug: string;
@@ -28,6 +33,7 @@ export interface IProduct extends Document {
   stock: number;
   sizes: string[];
   sizePricing?: ISizePricing[];
+  sizeStock?: ISizeStock[];
   colors: { name: string; hex: string }[];
   tags: string[];
   isFeatured: boolean;
@@ -66,6 +72,10 @@ const ProductSchema = new Schema<IProduct>(
       size: { type: String, required: true },
       price: { type: Number, required: true, min: 0 },
       comparePrice: { type: Number }
+    }],
+    sizeStock: [{
+      size: { type: String, required: true },
+      quantity: { type: Number, required: true, default: 0 }
     }],
     colors: [{ name: String, hex: String }],
     tags: [{ type: String }],

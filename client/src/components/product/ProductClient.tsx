@@ -45,6 +45,17 @@ export default function ProductClient({ product, relatedProducts }: { product: a
     setDisplayComparePrice(product.comparePrice);
   };
 
+  // Get available stock for selected size (or total stock)
+  const getAvailableStock = () => {
+    if (selectedSize && product.sizeStock && product.sizeStock.length > 0) {
+      const sizeStock = product.sizeStock.find((ss: any) => ss.size === selectedSize);
+      if (sizeStock) {
+        return sizeStock.quantity;
+      }
+    }
+    return stock;
+  };
+
   const checkRateLimit = (): boolean => {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
@@ -81,8 +92,11 @@ export default function ProductClient({ product, relatedProducts }: { product: a
       return;
     }
     
-    if (isOutOfStock) {
-      toast.error('This product is out of stock');
+    // Get size-specific stock or fallback to total stock
+    const availableStock = getAvailableStock();
+    
+    if (availableStock === 0) {
+      toast.error('This size is out of stock');
       return;
     }
     
@@ -91,16 +105,9 @@ export default function ProductClient({ product, relatedProducts }: { product: a
       return;
     }
     
-    // Calculate total quantity of this product already in cart (across all color/size variants)
-    const cartItems = getItems;
-    const existingProductQuantity = cartItems
-      .filter((item) => item.id === product._id)
-      .reduce((sum, item) => sum + item.quantity, 0);
-    
-    const totalQuantityAfterAdd = existingProductQuantity + quantity;
-    
-    if (totalQuantityAfterAdd > stock) {
-      toast.error(`Only ${stock} available in stock. You already have ${existingProductQuantity} in cart. Can add ${Math.max(0, stock - existingProductQuantity)} more.`);
+    // Validate quantity against size-specific stock
+    if (quantity > availableStock) {
+      toast.error(`Only ${availableStock} available for size ${selectedSize}`);
       return;
     }
 
@@ -118,16 +125,14 @@ export default function ProductClient({ product, relatedProducts }: { product: a
   };
 
   const handleQuantityChange = (newQuantity: number) => {
-    const clamped = Math.max(1, Math.min(stock, newQuantity));
+    const availableStock = getAvailableStock();
+    const clamped = Math.max(1, Math.min(availableStock, newQuantity));
     setQuantity(clamped);
   };
 
-  // Check if adding this quantity would exceed total stock (across all variants in cart)
-  const cartItems = getItems;
-  const cartProductQuantity = cartItems
-    .filter((item) => item.id === product._id)
-    .reduce((sum, item) => sum + item.quantity, 0);
-  const canAddToCart = cartProductQuantity + quantity <= stock;
+  // Check if can add to cart based on size-specific stock
+  const availableStock = getAvailableStock();
+  const canAddToCart = quantity <= availableStock;
 
   const handleWishlistToggle = () => {
     wishlistToggle(product._id);
@@ -279,15 +284,18 @@ export default function ProductClient({ product, relatedProducts }: { product: a
                   <span className="px-6 font-bold">{quantity}</span>
                   <button 
                     onClick={() => handleQuantityChange(quantity + 1)}
-                    disabled={quantity >= stock || cartProductQuantity + quantity >= stock}
+                    disabled={quantity >= availableStock}
                     className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus size={18} />
                   </button>
                 </div>
-                <span className={`text-sm font-semibold ${isOutOfStock ? 'text-red-600' : stock < 5 ? 'text-orange-600' : 'text-green-600'}`}>
-                  {isOutOfStock ? 'Out of Stock' : stock < 5 ? `Only ${stock} left!` : `${stock} in stock`}
-                  {cartProductQuantity > 0 && ` (${cartProductQuantity} in cart)`}
+                <span className={`text-sm font-semibold ${availableStock === 0 ? 'text-red-600' : availableStock < 5 ? 'text-orange-600' : 'text-green-600'}`}>
+                  {availableStock === 0 
+                    ? `${selectedSize ? `Size ${selectedSize}` : 'Product'} Out of Stock`
+                    : availableStock < 5
+                    ? `Only ${availableStock} left!`
+                    : `${availableStock} in stock`}
                 </span>
               </div>
             </div>

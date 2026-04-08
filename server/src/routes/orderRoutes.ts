@@ -68,6 +68,25 @@ router.post('/', protect, orderLimiter, async (req: AuthRequest, res: Response) 
         });
         return;
       }
+
+      // If product has size-specific stock, validate against that instead
+      if (item.size && product.sizeStock && product.sizeStock.length > 0) {
+        const sizeStock = product.sizeStock.find((ss: any) => ss.size === item.size);
+        if (!sizeStock) {
+          res.status(400).json({
+            success: false,
+            message: `Size ${item.size} not available for ${product.name}`
+          });
+          return;
+        }
+        if (sizeStock.quantity < item.quantity) {
+          res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${product.name} in size ${item.size}. Available: ${sizeStock.quantity}, Requested: ${item.quantity}`
+          });
+          return;
+        }
+      }
     }
 
     // Add shipping and tax to calculated total
@@ -97,6 +116,17 @@ router.post('/', protect, orderLimiter, async (req: AuthRequest, res: Response) 
         });
         return;
       }
+      // Additional check for size-specific stock
+      if (item.size && product.sizeStock && product.sizeStock.length > 0) {
+        const sizeStock = product.sizeStock.find((ss: any) => ss.size === item.size);
+        if (!sizeStock || sizeStock.quantity < item.quantity) {
+          res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${product.name} in size ${item.size}. Available: ${sizeStock?.quantity || 0}, Requested: ${item.quantity}`
+          });
+          return;
+        }
+      }
     }
 
     // CRITICAL: Use MongoDB session for atomic transaction
@@ -121,17 +151,29 @@ router.post('/', protect, orderLimiter, async (req: AuthRequest, res: Response) 
       // Atomically decrement stock for each product within the transaction
       // If any fails, entire transaction rolls back
       for (const item of items) {
+        let updateQuery: any = { $inc: { stock: -item.quantity } };
+        
+        // If item has size and product has size-specific stock, also decrement that
+        if (item.size) {
+          updateQuery['$inc']['sizeStock.$[elem].quantity'] = -item.quantity;
+        }
+        
+        const updateOptions: any = { new: true, session };
+        if (item.size) {
+          updateOptions.arrayFilters = [{ 'elem.size': item.size }];
+        }
+
         const result = await Product.findByIdAndUpdate(
           item.product || item.id,
-          { $inc: { stock: -item.quantity } },
-          { new: true, session } // Use the same session
-        );
+          updateQuery,
+          updateOptions
+        ) as any;
 
         // Verify stock didn't go negative (shouldn't happen due to pre-check, but atomic verify)
         if (result && result.stock < 0) {
           throw new Error(`Stock went negative for product ${item.product || item.id}`);
         }
-        console.log(`✅ Stock updated atomically: Product ${item.product || item.id} reduced by ${item.quantity}`);
+        console.log(`✅ Stock updated atomically: Product ${item.product || item.id} reduced by ${item.quantity}${item.size ? ` for size ${item.size}` : ''}`);
       }
 
       // Commit the transaction

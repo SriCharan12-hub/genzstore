@@ -79,6 +79,12 @@ export default function AdminDashboard() {
     comparePrice?: number;
   }>>([]);
 
+  // Size Stock state
+  const [sizeStockRows, setSizeStockRows] = useState<Array<{
+    size: string;
+    quantity: number;
+  }>>([]);
+
   // Users state
   interface User {
     _id: string;
@@ -324,6 +330,7 @@ export default function AdminDashboard() {
     setUploadedThumbnail('');
     setUploadedImages([]);
     setSizePricingRows([]);
+    setSizeStockRows([]);
     setShowForm(true);
   };
 
@@ -349,6 +356,12 @@ export default function AdminDashboard() {
       size: sp.size,
       price: sp.price,
       comparePrice: sp.comparePrice,
+    })));
+    // Pre-populate size stock rows
+    const existingSizeStock = (product as any).sizeStock || [];
+    setSizeStockRows(existingSizeStock.map((ss: any) => ({
+      size: ss.size,
+      quantity: ss.quantity,
     })));
     // Show existing images as previews
     const existingUrls = [(product as any).thumbnail, ...(product.images || [])].filter(Boolean);
@@ -392,6 +405,25 @@ export default function AdminDashboard() {
     if (!comparePrice || comparePrice <= price) return '0%';
     const discount = ((comparePrice - price) / comparePrice * 100).toFixed(0);
     return `${discount}%`;
+  };
+
+  // Add size stock row
+  const addSizeStockRow = () => {
+    setSizeStockRows((prev) => [...prev, { size: '', quantity: 0 }]);
+  };
+
+  // Remove size stock row
+  const removeSizeStockRow = (index: number) => {
+    setSizeStockRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Update size stock row
+  const updateSizeStockRow = (index: number, field: string, value: any) => {
+    setSizeStockRows((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, [field]: value } : row
+      )
+    );
   };
 
   // Handle file selection with previews
@@ -464,6 +496,11 @@ export default function AdminDashboard() {
       // Include size pricing if available
       if (sizePricingRows.length > 0) {
         payload.sizePricing = sizePricingRows;
+      }
+
+      // Include size stock if available
+      if (sizeStockRows.length > 0) {
+        payload.sizeStock = sizeStockRows;
       }
 
       const url = editingProduct
@@ -962,6 +999,71 @@ export default function AdminDashboard() {
                           <p className="text-xs text-gray-400 text-center py-4">No size pricing added yet. Click "+ Add Price" to add pricing for specific sizes.</p>
                         )}
                       </div>
+
+                      {/* Size Stock Section */}
+                      <div className="md:col-span-2 border-t border-gray-200 pt-4 mt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Size Stock (Quantity Per Size)</label>
+                          <button
+                            type="button"
+                            onClick={addSizeStockRow}
+                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded transition-colors"
+                          >
+                            + Add Quantity
+                          </button>
+                        </div>
+                        {sizeStockRows.length > 0 ? (
+                          <div className="overflow-x-auto border border-gray-200 rounded">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200">
+                                  <th className="px-3 py-2 text-left font-bold text-gray-600">Size</th>
+                                  <th className="px-3 py-2 text-left font-bold text-gray-600">Quantity</th>
+                                  <th className="px-3 py-2 text-center font-bold text-gray-600">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sizeStockRows.map((row, idx) => (
+                                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="text"
+                                        placeholder="e.g. S, M, L"
+                                        value={row.size}
+                                        onChange={(e) => updateSizeStockRow(idx, 'size', e.target.value)}
+                                        className="w-full border border-gray-200 px-2 py-1 text-xs outline-none focus:border-black"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={row.quantity}
+                                        onChange={(e) => updateSizeStockRow(idx, 'quantity', Number(e.target.value))}
+                                        className="w-full border border-gray-200 px-2 py-1 text-xs outline-none focus:border-black"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeSizeStockRow(idx)}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                                        title="Remove this size stock"
+                                      >
+                                        ✕
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400 text-center py-4">No size stock added yet. Click "+ Add Quantity" to add quantities for specific sizes. Total stock will be calculated automatically.</p>
+                        )}
+                      </div>
+
                       <div className="md:col-span-2">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Description</label>
                         <textarea
