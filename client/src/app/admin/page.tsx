@@ -73,6 +73,11 @@ export default function AdminDashboard() {
 
   // Size Pricing state
   const [sizePricingProduct, setSizePricingProduct] = useState<Product | null>(null);
+  const [sizePricingRows, setSizePricingRows] = useState<Array<{
+    size: string;
+    price: number;
+    comparePrice?: number;
+  }>>([]);
 
   // Users state
   interface User {
@@ -318,6 +323,7 @@ export default function AdminDashboard() {
     setPreviews([]);
     setUploadedThumbnail('');
     setUploadedImages([]);
+    setSizePricingRows([]);
     setShowForm(true);
   };
 
@@ -337,6 +343,13 @@ export default function AdminDashboard() {
       sizes: (product.sizes || []).join(', '),
       isActive: product.isActive,
     });
+    // Pre-populate size pricing rows
+    const existingSizePricing = (product as any).sizePricing || [];
+    setSizePricingRows(existingSizePricing.map((sp: any) => ({
+      size: sp.size,
+      price: sp.price,
+      comparePrice: sp.comparePrice,
+    })));
     // Show existing images as previews
     const existingUrls = [(product as any).thumbnail, ...(product.images || [])].filter(Boolean);
     setPreviews(existingUrls);
@@ -353,6 +366,32 @@ export default function AdminDashboard() {
       name: val,
       slug: editingProduct ? f.slug : val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
     }));
+  };
+
+  // Add size pricing row
+  const addSizePricingRow = () => {
+    setSizePricingRows((prev) => [...prev, { size: '', price: 0, comparePrice: undefined }]);
+  };
+
+  // Remove size pricing row
+  const removeSizePricingRow = (index: number) => {
+    setSizePricingRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Update size pricing row
+  const updateSizePricingRow = (index: number, field: string, value: any) => {
+    setSizePricingRows((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, [field]: value } : row
+      )
+    );
+  };
+
+  // Calculate discount percentage
+  const calculateDiscount = (price: number, comparePrice?: number): string => {
+    if (!comparePrice || comparePrice <= price) return '0%';
+    const discount = ((comparePrice - price) / comparePrice * 100).toFixed(0);
+    return `${discount}%`;
   };
 
   // Handle file selection with previews
@@ -407,7 +446,7 @@ export default function AdminDashboard() {
         galleryImages = uploaded.images;
       }
 
-      const payload = {
+      const payload: any = {
         name: form.name,
         slug: form.slug,
         price: Number(form.price),
@@ -421,6 +460,11 @@ export default function AdminDashboard() {
         sizes: form.sizes.split(',').map((s) => s.trim()).filter(Boolean),
         isActive: form.isActive,
       };
+
+      // Include size pricing if available
+      if (sizePricingRows.length > 0) {
+        payload.sizePricing = sizePricingRows;
+      }
 
       const url = editingProduct
         ? `${API_URL}/api/products/${editingProduct._id}`
@@ -837,6 +881,86 @@ export default function AdminDashboard() {
                           className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black transition-colors"
                           placeholder="S, M, L, XL, XXL"
                         />
+                      </div>
+                      {/* Size Pricing Section */}
+                      <div className="md:col-span-2 border-t border-gray-200 pt-4 mt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Size Pricing (Optional)</label>
+                          <button
+                            type="button"
+                            onClick={addSizePricingRow}
+                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors"
+                          >
+                            + Add Price
+                          </button>
+                        </div>
+                        {sizePricingRows.length > 0 ? (
+                          <div className="overflow-x-auto border border-gray-200 rounded">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200">
+                                  <th className="px-3 py-2 text-left font-bold text-gray-600">Size</th>
+                                  <th className="px-3 py-2 text-left font-bold text-gray-600">Price (₹)</th>
+                                  <th className="px-3 py-2 text-left font-bold text-gray-600">Compare (₹)</th>
+                                  <th className="px-3 py-2 text-center font-bold text-gray-600">Discount</th>
+                                  <th className="px-3 py-2 text-center font-bold text-gray-600">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sizePricingRows.map((row, idx) => (
+                                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="text"
+                                        placeholder="e.g. S, M, L"
+                                        value={row.size}
+                                        onChange={(e) => updateSizePricingRow(idx, 'size', e.target.value)}
+                                        className="w-full border border-gray-200 px-2 py-1 text-xs outline-none focus:border-black"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={row.price}
+                                        onChange={(e) => updateSizePricingRow(idx, 'price', Number(e.target.value))}
+                                        className="w-full border border-gray-200 px-2 py-1 text-xs outline-none focus:border-black"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={row.comparePrice || ''}
+                                        onChange={(e) => updateSizePricingRow(idx, 'comparePrice', e.target.value ? Number(e.target.value) : undefined)}
+                                        className="w-full border border-gray-200 px-2 py-1 text-xs outline-none focus:border-black"
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2 text-center text-gray-600 font-semibold">
+                                      {calculateDiscount(row.price, row.comparePrice)}
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeSizePricingRow(idx)}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                                        title="Remove this size pricing"
+                                      >
+                                        ✕
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400 text-center py-4">No size pricing added yet. Click "+ Add Price" to add pricing for specific sizes.</p>
+                        )}
                       </div>
                       <div className="md:col-span-2">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Description</label>
