@@ -4,10 +4,11 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
   Package, LayoutDashboard, ShoppingCart, Plus, Pencil,
-  Trash2, BarChart3, Users, X, Save, Loader2
+  Trash2, BarChart3, Users, X, Save, Loader2, Tag
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import SizePricingManager from '@/components/admin/SizePricingManager';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1000';
 
@@ -63,12 +64,15 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Image upload state
+  // Images state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploadedThumbnail, setUploadedThumbnail] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // Size Pricing state
+  const [sizePricingProduct, setSizePricingProduct] = useState<Product | null>(null);
 
   // Users state
   interface User {
@@ -468,6 +472,42 @@ export default function AdminDashboard() {
       toast.error('Network error');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Save Size Pricing
+  const handleSaveSizePricing = async (sizePricing: any) => {
+    if (!sizePricingProduct) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/products/${sizePricingProduct._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          ...sizePricingProduct,
+          sizePricing: sizePricing,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Update the product in the list
+        setProducts((prev) =>
+          prev.map((p) =>
+            p._id === sizePricingProduct._id
+              ? { ...p, sizePricing: sizePricing }
+              : p
+          )
+        );
+        setSizePricingProduct(null);
+      } else {
+        throw new Error(data.message || 'Failed to save pricing');
+      }
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('Failed to save pricing');
     }
   };
 
@@ -919,6 +959,15 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {product.sizes && product.sizes.length > 0 && (
+                              <button
+                                onClick={() => setSizePricingProduct(product)}
+                                className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                                title="Manage size pricing"
+                              >
+                                <Tag className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => openEdit(product)}
                               className="p-2 text-gray-400 hover:text-black transition-colors"
@@ -1293,6 +1342,20 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Size Pricing Manager Modal */}
+        {sizePricingProduct && (
+          <SizePricingManager
+            productId={sizePricingProduct._id}
+            productName={sizePricingProduct.name}
+            sizes={sizePricingProduct.sizes || []}
+            basePrice={sizePricingProduct.price}
+            sizepricing={(sizePricingProduct as any).sizePricing}
+            onClose={() => setSizePricingProduct(null)}
+            onSave={handleSaveSizePricing}
+            accessToken={getToken()}
+          />
         )}
       </div>
     </div>

@@ -17,11 +17,32 @@ export default function ProductClient({ product, relatedProducts }: { product: a
   const [quantity, setQuantity] = useState(1);
   const [clickTimestamps, setClickTimestamps] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [displayPrice, setDisplayPrice] = useState(product.price);
+  const [displayComparePrice, setDisplayComparePrice] = useState(product.comparePrice);
   const stock = product.stock && product.stock > 0 ? product.stock : 0;
   const isOutOfStock = stock === 0;
   const addItem = useCartStore((s) => s.addItem);
   const wishlistToggle = useWishlistStore((s) => s.toggle);
   const isWished = useWishlistStore((s) => s.has(product._id));
+
+  // Update price when size changes
+  const handleSizeSelect = (size: string) => {
+    setSelectedSize(size);
+    
+    // Find size-specific pricing if available
+    if (product.sizePricing && product.sizePricing.length > 0) {
+      const sizePrice = product.sizePricing.find((sp: any) => sp.size === size);
+      if (sizePrice) {
+        setDisplayPrice(sizePrice.price);
+        setDisplayComparePrice(sizePrice.comparePrice || product.comparePrice);
+        return;
+      }
+    }
+    
+    // Fallback to base price
+    setDisplayPrice(product.price);
+    setDisplayComparePrice(product.comparePrice);
+  };
 
   const checkRateLimit = (): boolean => {
     const now = Date.now();
@@ -77,7 +98,7 @@ export default function ProductClient({ product, relatedProducts }: { product: a
     addItem({
       id: product._id,
       name: product.name,
-      price: product.price,
+      price: displayPrice,
       image: product.images?.[0] || product.thumbnail,
       size: selectedSize,
       color: selectedColor,
@@ -168,9 +189,9 @@ export default function ProductClient({ product, relatedProducts }: { product: a
 
           {/* Price */}
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-3xl font-bold">{formatPrice(product.price)}</span>
-            {product.comparePrice && (
-              <span className="text-xl line-through text-gray-400">{formatPrice(product.comparePrice)}</span>
+            <span className="text-3xl font-bold">{formatPrice(displayPrice)}</span>
+            {displayComparePrice && displayComparePrice > displayPrice && (
+              <span className="text-xl line-through text-gray-400">{formatPrice(displayComparePrice)}</span>
             )}
           </div>
 
@@ -204,7 +225,7 @@ export default function ProductClient({ product, relatedProducts }: { product: a
                   {product.sizes.map((size: string) => (
                     <button
                       key={size}
-                      onClick={() => setSelectedSize(size)}
+                      onClick={() => handleSizeSelect(size)}
                       className={`py-3 border-2 font-bold uppercase text-xs tracking-wider transition-all ${
                         selectedSize === size
                           ? 'bg-black text-white border-black'

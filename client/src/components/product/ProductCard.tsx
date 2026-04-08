@@ -42,11 +42,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const [clickTimestamps, setClickTimestamps] = useState<number[]>([]);
   const isOutOfStock = stock === 0;
 
-  // Debug logging
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`Product: ${name}, Stock: ${stock}`);
-  }
-
   const checkRateLimit = (): boolean => {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;

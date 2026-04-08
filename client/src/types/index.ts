@@ -1,3 +1,9 @@
+export interface SizePricing {
+  size: string;
+  price: number;
+  comparePrice?: number;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -8,9 +14,11 @@ export interface Product {
   category: string;
   subcategory?: string;
   brand: string;
+  thumbnail?: string;
   images: string[];
   stock: number;
   sizes: string[];
+  sizePricing?: SizePricing[];
   colors: { name: string; hex: string }[];
   tags: string[];
   isFeatured: boolean;

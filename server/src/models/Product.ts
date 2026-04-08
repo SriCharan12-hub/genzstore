@@ -8,6 +8,12 @@ export interface IReview {
   createdAt: Date;
 }
 
+export interface ISizePricing {
+  size: string;
+  price: number;
+  comparePrice?: number;
+}
+
 export interface IProduct extends Document {
   name: string;
   slug: string;
@@ -21,6 +27,7 @@ export interface IProduct extends Document {
   images: string[];
   stock: number;
   sizes: string[];
+  sizePricing?: ISizePricing[];
   colors: { name: string; hex: string }[];
   tags: string[];
   isFeatured: boolean;
@@ -55,6 +62,11 @@ const ProductSchema = new Schema<IProduct>(
     images: [{ type: String }],
     stock: { type: Number, required: true, default: 0 },
     sizes: [{ type: String }],
+    sizePricing: [{ 
+      size: { type: String, required: true },
+      price: { type: Number, required: true, min: 0 },
+      comparePrice: { type: Number }
+    }],
     colors: [{ name: String, hex: String }],
     tags: [{ type: String }],
     isFeatured: { type: Boolean, default: false },

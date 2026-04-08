@@ -22,6 +22,14 @@ const sampleProducts = [
     ],
     stock: 50,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    sizePricing: [
+      { size: 'XS', price: 49.99, comparePrice: 69.99 },
+      { size: 'S', price: 54.99, comparePrice: 74.99 },
+      { size: 'M', price: 59.99, comparePrice: 79.99 },
+      { size: 'L', price: 64.99, comparePrice: 84.99 },
+      { size: 'XL', price: 69.99, comparePrice: 89.99 },
+      { size: 'XXL', price: 74.99, comparePrice: 94.99 },
+    ],
     colors: [
       { name: 'Black', hex: '#000000' },
       { name: 'Gray', hex: '#808080' },
@@ -48,6 +56,14 @@ const sampleProducts = [
     ],
     stock: 100,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    sizePricing: [
+      { size: 'XS', price: 24.99, comparePrice: 34.99 },
+      { size: 'S', price: 26.99, comparePrice: 36.99 },
+      { size: 'M', price: 29.99, comparePrice: 39.99 },
+      { size: 'L', price: 32.99, comparePrice: 42.99 },
+      { size: 'XL', price: 34.99, comparePrice: 44.99 },
+      { size: 'XXL', price: 37.99, comparePrice: 47.99 },
+    ],
     colors: [
       { name: 'White', hex: '#FFFFFF' },
       { name: 'Black', hex: '#000000' },
@@ -74,6 +90,12 @@ const sampleProducts = [
     ],
     stock: 35,
     sizes: ['S', 'M', 'L', 'XL'],
+    sizePricing: [
+      { size: 'S', price: 79.99, comparePrice: 109.99 },
+      { size: 'M', price: 89.99, comparePrice: 119.99 },
+      { size: 'L', price: 99.99, comparePrice: 129.99 },
+      { size: 'XL', price: 109.99, comparePrice: 139.99 },
+    ],
     colors: [
       { name: 'Black', hex: '#000000' },
       { name: 'Olive', hex: '#808000' },
@@ -100,6 +122,13 @@ const sampleProducts = [
     ],
     stock: 60,
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    sizePricing: [
+      { size: 'XS', price: 39.99, comparePrice: 59.99 },
+      { size: 'S', price: 44.99, comparePrice: 64.99 },
+      { size: 'M', price: 49.99, comparePrice: 69.99 },
+      { size: 'L', price: 54.99, comparePrice: 74.99 },
+      { size: 'XL', price: 59.99, comparePrice: 79.99 },
+    ],
     colors: [
       { name: 'Black', hex: '#000000' },
       { name: 'Gray', hex: '#808080' },
@@ -126,6 +155,9 @@ const sampleProducts = [
     ],
     stock: 150,
     sizes: ['One Size'],
+    sizePricing: [
+      { size: 'One Size', price: 19.99, comparePrice: 29.99 },
+    ],
     colors: [
       { name: 'Black', hex: '#000000' },
       { name: 'White', hex: '#FFFFFF' },
@@ -152,6 +184,16 @@ const sampleProducts = [
     ],
     stock: 80,
     sizes: ['6', '7', '8', '9', '10', '11', '12', '13'],
+    sizePricing: [
+      { size: '6', price: 59.99, comparePrice: 79.99 },
+      { size: '7', price: 64.99, comparePrice: 84.99 },
+      { size: '8', price: 69.99, comparePrice: 89.99 },
+      { size: '9', price: 69.99, comparePrice: 89.99 },
+      { size: '10', price: 69.99, comparePrice: 89.99 },
+      { size: '11', price: 74.99, comparePrice: 94.99 },
+      { size: '12', price: 79.99, comparePrice: 99.99 },
+      { size: '13', price: 84.99, comparePrice: 104.99 },
+    ],
     colors: [
       { name: 'White', hex: '#FFFFFF' },
       { name: 'Black', hex: '#000000' },
@@ -178,6 +220,14 @@ const sampleProducts = [
     ],
     stock: 90,
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    sizePricing: [
+      { size: 'XS', price: 34.99, comparePrice: 54.99 },
+      { size: 'S', price: 36.99, comparePrice: 56.99 },
+      { size: 'M', price: 39.99, comparePrice: 59.99 },
+      { size: 'L', price: 42.99, comparePrice: 62.99 },
+      { size: 'XL', price: 44.99, comparePrice: 64.99 },
+      { size: 'XXL', price: 47.99, comparePrice: 67.99 },
+    ],
     colors: [
       { name: 'Black', hex: '#000000' },
       { name: 'Gray', hex: '#808080' },
@@ -204,6 +254,15 @@ const sampleProducts = [
     ],
     stock: 55,
     sizes: ['28', '30', '32', '34', '36', '38', '40'],
+    sizePricing: [
+      { size: '28', price: 39.99, comparePrice: 59.99 },
+      { size: '30', price: 42.99, comparePrice: 62.99 },
+      { size: '32', price: 44.99, comparePrice: 64.99 },
+      { size: '34', price: 44.99, comparePrice: 64.99 },
+      { size: '36', price: 44.99, comparePrice: 64.99 },
+      { size: '38', price: 47.99, comparePrice: 67.99 },
+      { size: '40', price: 49.99, comparePrice: 69.99 },
+    ],
     colors: [
       { name: 'Khaki', hex: '#C3B091' },
       { name: 'Black', hex: '#000000' },
@@ -229,6 +288,14 @@ const sampleProducts = [
     ],
     stock: 120,
     sizes: ['30', '32', '34', '36', '38', '40'],
+    sizePricing: [
+      { size: '30', price: 29.99, comparePrice: 49.99 },
+      { size: '32', price: 32.99, comparePrice: 52.99 },
+      { size: '34', price: 34.99, comparePrice: 54.99 },
+      { size: '36', price: 34.99, comparePrice: 54.99 },
+      { size: '38', price: 37.99, comparePrice: 57.99 },
+      { size: '40', price: 39.99, comparePrice: 59.99 },
+    ],
     colors: [
       { name: 'Black', hex: '#000000' },
       { name: 'Brown', hex: '#A52A2A' },
