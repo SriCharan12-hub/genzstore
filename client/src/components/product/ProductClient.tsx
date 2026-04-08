@@ -22,6 +22,7 @@ export default function ProductClient({ product, relatedProducts }: { product: a
   const stock = product.stock && product.stock > 0 ? product.stock : 0;
   const isOutOfStock = stock === 0;
   const addItem = useCartStore((s) => s.addItem);
+  const getItems = useCartStore((s) => s.items);
   const wishlistToggle = useWishlistStore((s) => s.toggle);
   const isWished = useWishlistStore((s) => s.has(product._id));
 
@@ -90,8 +91,16 @@ export default function ProductClient({ product, relatedProducts }: { product: a
       return;
     }
     
-    if (quantity > stock) {
-      toast.error(`Only ${stock} available in stock`);
+    // Calculate total quantity of this product already in cart (across all color/size variants)
+    const cartItems = getItems;
+    const existingProductQuantity = cartItems
+      .filter((item) => item.id === product._id)
+      .reduce((sum, item) => sum + item.quantity, 0);
+    
+    const totalQuantityAfterAdd = existingProductQuantity + quantity;
+    
+    if (totalQuantityAfterAdd > stock) {
+      toast.error(`Only ${stock} available in stock. You already have ${existingProductQuantity} in cart. Can add ${Math.max(0, stock - existingProductQuantity)} more.`);
       return;
     }
 
@@ -112,6 +121,13 @@ export default function ProductClient({ product, relatedProducts }: { product: a
     const clamped = Math.max(1, Math.min(stock, newQuantity));
     setQuantity(clamped);
   };
+
+  // Check if adding this quantity would exceed total stock (across all variants in cart)
+  const cartItems = getItems;
+  const cartProductQuantity = cartItems
+    .filter((item) => item.id === product._id)
+    .reduce((sum, item) => sum + item.quantity, 0);
+  const canAddToCart = cartProductQuantity + quantity <= stock;
 
   const handleWishlistToggle = () => {
     wishlistToggle(product._id);
@@ -263,7 +279,7 @@ export default function ProductClient({ product, relatedProducts }: { product: a
                   <span className="px-6 font-bold">{quantity}</span>
                   <button 
                     onClick={() => handleQuantityChange(quantity + 1)}
-                    disabled={quantity >= stock}
+                    disabled={quantity >= stock || cartProductQuantity + quantity >= stock}
                     className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus size={18} />
@@ -271,6 +287,7 @@ export default function ProductClient({ product, relatedProducts }: { product: a
                 </div>
                 <span className={`text-sm font-semibold ${isOutOfStock ? 'text-red-600' : stock < 5 ? 'text-orange-600' : 'text-green-600'}`}>
                   {isOutOfStock ? 'Out of Stock' : stock < 5 ? `Only ${stock} left!` : `${stock} in stock`}
+                  {cartProductQuantity > 0 && ` (${cartProductQuantity} in cart)`}
                 </span>
               </div>
             </div>
@@ -280,15 +297,15 @@ export default function ProductClient({ product, relatedProducts }: { product: a
           <div className="flex gap-4 mb-8">
             <button
               onClick={handleAddToCart}
-              disabled={isOutOfStock || quantity > stock}
+              disabled={isOutOfStock || !canAddToCart}
               className={`flex-1 py-4 font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                isOutOfStock || quantity > stock
+                isOutOfStock || !canAddToCart
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                   : 'bg-black text-white hover:bg-gray-900'
               }`}
             >
               <ShoppingCart size={20} /> 
-              {isOutOfStock ? 'Stock Unavailable' : quantity > stock ? 'Exceeds Stock' : 'Add to Cart'}
+              {isOutOfStock ? 'Stock Unavailable' : !canAddToCart ? 'Exceeds Stock' : 'Add to Cart'}
             </button>
             <button
               onClick={handleWishlistToggle}
