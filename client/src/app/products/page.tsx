@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import ProductCard from '@/components/product/ProductCard';
+import ProductFilters from '@/components/product/ProductFilters';
 
 export const metadata: Metadata = {
   title: 'Shop All Products | GenZ Store - Premium Streetwear',
@@ -18,7 +19,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1000';
 async function fetchProducts(searchParams: Record<string, string | undefined>) {
   try {
     const url = new URL(`${API_URL}/api/products`);
-    if (searchParams.category) url.searchParams.append('category', searchParams.category);
+    if (searchParams.category) {
+      // Capitalize first letter of category for consistency with database
+      const category = searchParams.category.charAt(0).toUpperCase() + searchParams.category.slice(1);
+      url.searchParams.append('category', category);
+    }
     if (searchParams.search) url.searchParams.append('search', searchParams.search);
     if (searchParams.sort) url.searchParams.append('sort', searchParams.sort);
     if (searchParams.page) url.searchParams.append('page', searchParams.page);
@@ -26,7 +31,11 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
     if (searchParams.maxPrice) url.searchParams.append('maxPrice', searchParams.maxPrice);
 
     console.log('Fetching products from:', url.toString());
-    const res = await fetch(url.toString(), { next: { revalidate: 60 } }); // ISR - revalidate every 60 seconds
+    // Revalidate every 30 seconds for faster stock updates
+    const res = await fetch(url.toString(), { 
+      next: { revalidate: 30 },
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     
     if (!res.ok) {
       console.error('Failed to fetch products. Status:', res.status);
@@ -42,11 +51,10 @@ async function fetchProducts(searchParams: Record<string, string | undefined>) {
   }
 }
 
-const categories = ['All', 'Hoodies', 'Tees', 'Outerwear', 'Bottoms', 'Accessories', 'Footwear'];
-
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
   const products = await fetchProducts(params);
+  const currentSort = params.sort || 'newest';
 
   return (
     <div className="pt-20">
@@ -58,25 +66,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3 mb-10 pb-6 border-b border-gray-100">
-          {categories.map((cat) => (
-            <a
-              key={cat}
-              href={cat === 'All' ? '/products' : `/products?category=${cat.toLowerCase()}`}
-              className="text-xs font-medium uppercase tracking-[0.1em] px-4 py-2 border border-gray-200 hover:bg-black hover:text-white hover:border-black transition-all"
-            >
-              {cat}
-            </a>
-          ))}
-          <div className="ml-auto flex gap-2">
-            <select className="text-xs border border-gray-200 px-3 py-2 bg-white uppercase tracking-wider outline-none cursor-pointer">
-              <option value="newest">Newest</option>
-              <option value="price-asc">Price: Low-High</option>
-              <option value="price-desc">Price: High-Low</option>
-              <option value="rating">Top Rated</option>
-            </select>
-          </div>
-        </div>
+        <ProductFilters currentSort={currentSort} />
 
         {/* Product Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">

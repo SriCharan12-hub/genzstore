@@ -12,6 +12,7 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
   user: mongoose.Types.ObjectId;
+  transactionId?: string; // SECURITY: Unique transaction ID instead of sequential _id
   items: IOrderItem[];
   shippingAddress: {
     street: string;
@@ -35,6 +36,8 @@ export interface IOrder extends Document {
   paidAt?: Date;
   isDelivered: boolean;
   deliveredAt?: Date;
+  isCancelled?: boolean;
+  cancelledAt?: Date;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: Date;
 }
@@ -42,6 +45,12 @@ export interface IOrder extends Document {
 const OrderSchema = new Schema<IOrder>(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    transactionId: { 
+      type: String, 
+      unique: true, 
+      sparse: true,
+      default: () => require('crypto').randomUUID(),
+    },
     items: [
       {
         product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
@@ -75,6 +84,8 @@ const OrderSchema = new Schema<IOrder>(
     paidAt: { type: Date },
     isDelivered: { type: Boolean, default: false },
     deliveredAt: { type: Date },
+    isCancelled: { type: Boolean, default: false },
+    cancelledAt: { type: Date },
     status: {
       type: String,
       enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
@@ -83,5 +94,12 @@ const OrderSchema = new Schema<IOrder>(
   },
   { timestamps: true }
 );
+
+// PERFORMANCE: Add indexes for common queries
+OrderSchema.index({ user: 1, createdAt: -1 }); // User's order history
+OrderSchema.index({ status: 1, createdAt: -1 }); // Filter by status
+OrderSchema.index({ transactionId: 1 }); // Lookup orders by transaction ID
+OrderSchema.index({ paymentMethod: 1 }); // Analytics
+OrderSchema.index({ createdAt: -1 }); // Recent orders
 
 export default mongoose.model<IOrder>('Order', OrderSchema);

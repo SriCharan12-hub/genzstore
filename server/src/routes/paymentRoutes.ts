@@ -3,6 +3,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { paymentLimiter } from '../middleware/rateLimiter';
+import { validatePaymentAmount, sanitizeOrderData } from '../utils/security';
 
 dotenv.config();
 
@@ -26,13 +27,25 @@ const router = express.Router();
  */
 router.post('/razorpay/create-order', paymentLimiter, async (req: Request, res: Response) => {
   try {
-    const { amount, currency = 'INR' } = req.body;
+    const { amount, currency = 'INR', orderId } = req.body;
     
     // Validate amount
     if (!amount || amount <= 0 || isNaN(amount)) {
       res.status(400).json({ 
         success: false, 
         message: 'Invalid amount. Amount must be a positive number.' 
+      });
+      return;
+    }
+
+    // CRITICAL: Amount tampering prevention
+    // Cap maximum order amount to prevent injection attacks
+    const MAX_ORDER_AMOUNT = 1000000; // 10 lakh rupees
+    if (amount > MAX_ORDER_AMOUNT) {
+      console.warn(`🚨 FRAUD ALERT: Suspiciously high order amount: ${amount}`);
+      res.status(400).json({ 
+        success: false, 
+        message: 'Order amount exceeds maximum limit' 
       });
       return;
     }

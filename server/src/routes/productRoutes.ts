@@ -1,7 +1,7 @@
 import express, { Response } from 'express';
 import Product from '../models/Product';
 import User from '../models/User';
-import redisClient from '../config/redis';
+import redisClient, { invalidateProductCache } from '../config/redis';
 import { protect, adminOnly, AuthRequest } from '../middleware/auth';
 import { searchLimiter, reviewLimiter } from '../middleware/rateLimiter';
 
@@ -27,7 +27,10 @@ router.get('/', searchLimiter, async (req: AuthRequest, res: Response) => {
     }
 
     const query: Record<string, unknown> = { isActive: true };
-    if (category) query.category = category;
+    if (category) {
+      // Case-insensitive category search
+      query.category = { $regex: category, $options: 'i' };
+    }
     if (minPrice || maxPrice) query.price = { ...(minPrice && { $gte: Number(minPrice) }), ...(maxPrice && { $lte: Number(maxPrice) }) };
     if (search) query.$text = { $search: search };
 
@@ -218,7 +221,7 @@ router.post('/:id/reviews', protect, reviewLimiter, async (req: AuthRequest, res
 router.post('/', protect, adminOnly, async (req: AuthRequest, res: Response) => {
   try {
     const product = await Product.create(req.body);
-    if (redisClient) await redisClient.keys('products:*').then((keys) => keys.length && redisClient!.del(keys));
+    await invalidateProductCache();
     res.status(201).json({ success: true, data: product });
   } catch (error: unknown) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
@@ -230,7 +233,7 @@ router.put('/:id', protect, adminOnly, async (req: AuthRequest, res: Response) =
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!product) { res.status(404).json({ success: false, message: 'Product not found' }); return; }
-    if (redisClient) { await redisClient.del(`product:${product.slug}`); await redisClient.keys('products:*').then((keys) => keys.length && redisClient!.del(keys)); }
+    await invalidateProductCache();
     res.status(200).json({ success: true, data: product });
   } catch (error: unknown) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });
@@ -242,7 +245,7 @@ router.delete('/:id', protect, adminOnly, async (req: AuthRequest, res: Response
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) { res.status(404).json({ success: false, message: 'Product not found' }); return; }
-    if (redisClient) await redisClient.keys('products:*').then((keys) => keys.length && redisClient!.del(keys));
+    await invalidateProductCache();
     res.status(200).json({ success: true, message: 'Product deleted' });
   } catch (error: unknown) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Server error' });

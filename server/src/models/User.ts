@@ -20,6 +20,8 @@ interface IUser extends Document {
   isVerified: boolean;
   otp?: string;
   otpExpires?: Date;
+  otpAttempts?: number; // Track failed OTP attempts for brute-force protection
+  otpAttemptResetTime?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -45,6 +47,8 @@ const UserSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false },
     otp: { type: String },
     otpExpires: { type: Date },
+    otpAttempts: { type: Number, default: 0 },
+    otpAttemptResetTime: { type: Date },
   },
   { timestamps: true }
 );
@@ -60,5 +64,11 @@ UserSchema.methods.comparePassword = async function(candidatePassword: string): 
   if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+// PERFORMANCE: Add indexes for common queries
+UserSchema.index({ email: 1 }); // Email lookup (already unique, but explicit for clarity)
+UserSchema.index({ role: 1 }); // Admin queries
+UserSchema.index({ isVerified: 1 }); // Verification status filtering
+UserSchema.index({ createdAt: -1 }); // Recent users
 
 export default mongoose.model<IUser>('User', UserSchema);

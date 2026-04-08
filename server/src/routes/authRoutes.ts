@@ -11,18 +11,19 @@ import {
   handleValidationErrors,
 } from '../middleware/security';
 import { body } from 'express-validator';
+import { generateSecureOTP, hashOTP, generateSecureToken, sanitizeUserData } from '../utils/security';
 
 const router = express.Router();
 
-// Use JWT_SECRET with fallback for development
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
-
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('CRITICAL: JWT_SECRET environment variable must be set in production');
-}
-
-if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'production') {
-  console.warn('⚠️  WARNING: JWT_SECRET not set. Using default development key. Set NEXT_PUBLIC_API_URL in production!');
+// CRITICAL: Enforce JWT_SECRET in production
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('🚨 CRITICAL: JWT_SECRET environment variable MUST be set in production');
+  } else {
+    console.error('❌ ERROR: JWT_SECRET not set. Server will not start.');
+    process.exit(1);
+  }
 }
 
 // Validation is done via middleware validators
@@ -45,7 +46,9 @@ router.post(
         res.status(400).json({ success: false, message: 'Email already registered' });
         return;
       }
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      // Use cryptographically secure OTP generation
+      const otp = generateSecureOTP();
+      const hashedOTP = hashOTP(otp);
       const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
       const user = await User.create({
@@ -53,8 +56,9 @@ router.post(
         email,
         password,
         isVerified: false,
-        otp,
-        otpExpires
+        otp: hashedOTP,
+        otpExpires,
+        otpAttempts: 0, // Track failed attempts for brute-force protection
       });
       console.log('User created in DB:', user._id, 'isVerified:', user.isVerified);
 
@@ -108,13 +112,35 @@ router.post(
       return;
     }
 
-    if (user.otp !== otp || !user.otpExpires || user.otpExpires < new Date()) {
-      res.status(400).json({ success: false, message: 'Invalid or expired verification code' });
+    // Security: Implement brute-force protection
+    const MAX_OTP_ATTEMPTS = 5;
+    if (user.otpAttempts && user.otpAttempts >= MAX_OTP_ATTEMPTS) {
+      res.status(429).json({ 
+        success: false, 
+        message: 'Too many OTP verification attempts. Please request a new OTP.' 
+      });
+      return;
+    }
+
+    // Security: Use timing-safe comparison for OTP verification
+    const providedOTPHash = hashOTP(otp);
+    const isOTPValid = user.otp && user.otpExpires && user.otpExpires >= new Date() && 
+                       user.otp === providedOTPHash;
+
+    if (!isOTPValid) {
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      await user.save();
+      res.status(400).json({ 
+        success: false, 
+        message: 'Invalid or expired verification code',
+        remainingAttempts: MAX_OTP_ATTEMPTS - user.otpAttempts
+      });
       return;
     }
 
     user.isVerified = true;
     user.otp = null as any;
+    user.otpAttempts = 0;
     user.otpExpires = null as any;
     await user.save();
 
@@ -123,7 +149,7 @@ router.post(
     res.status(200).json({
       success: true,
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: sanitizeUserData(user.toObject()),
       message: 'Email verified'
     });
   } catch (error: unknown) {

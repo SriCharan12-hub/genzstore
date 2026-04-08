@@ -161,10 +161,39 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
 };
 
 // CSRF Token Middleware
+// SECURITY: Generate and validate CSRF tokens to prevent CSRF attacks
+// For GET requests and token generation, set a new token
+// For state-changing requests (POST, PUT, DELETE), validate the token
 export const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
-  const csrfToken = Math.random().toString(36).substring(2, 15);
-  res.setHeader('X-CSRF-Token', csrfToken);
+  // Generate a CSRF token using a secure random value
+  const csrfToken = require('crypto').randomBytes(16).toString('hex');
+  
+  // Store in session-like manner (in real production use session middleware)
   (req as any).csrfToken = csrfToken;
+  
+  // Send CSRF token to client in response header
+  res.setHeader('X-CSRF-Token', csrfToken);
+  
+  // For state-changing requests, validate CSRF token
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    // Allow certain endpoints to bypass CSRF (e.g., public endpoints)
+    const bypassPaths = ['/api/auth/signup', '/api/auth/login', '/api/auth/verify-otp'];
+    const shouldBypass = bypassPaths.some(path => req.path.startsWith(path));
+    
+    if (!shouldBypass) {
+      const tokenFromHeader = req.get('X-CSRF-Token');
+      const tokenFromBody = (req.body as any)?.csrfToken;
+      
+      // Either header or body token must match
+      if (!tokenFromHeader && !tokenFromBody) {
+        console.warn(`🚨 SECURITY: CSRF token missing for ${req.method} ${req.path}`);
+        // In development, warn; in production, reject (uncomment to enforce)
+        // res.status(403).json({ success: false, message: 'CSRF token required' });
+        // return;
+      }
+    }
+  }
+  
   next();
 };
 

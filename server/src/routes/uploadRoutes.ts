@@ -2,20 +2,41 @@ import express, { Response } from 'express';
 import multer from 'multer';
 import cloudinary from '../config/cloudinary';
 import { protect, adminOnly, AuthRequest } from '../middleware/auth';
+import { validatePaymentAmount } from '../utils/security';
 
 const router = express.Router();
+
+// SECURITY: Whitelist of allowed MIME types
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILES_PER_REQUEST = 10;
 
 // Use memory storage — files are held as buffers, not written to disk
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per file
+  limits: { 
+    fileSize: MAX_FILE_SIZE,
+    files: MAX_FILES_PER_REQUEST,
+  },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'));
+    // SECURITY: Strict file type validation
+    if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+      console.warn(`🚨 SECURITY: Attempted upload of disallowed file type: ${file.mimetype}`);
+      cb(new Error(`File type ${file.mimetype} not allowed. Only JPEG, PNG, WebP allowed.`));
+      return;
     }
+
+    // SECURITY: Validate file extension matches MIME type (prevent spoofing)
+    const ext = file.originalname.split('.').pop()?.toLowerCase();
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    if (!ext || !validExtensions.includes(ext)) {
+      console.warn(`🚨 SECURITY: Attempted upload with invalid extension: ${ext}`);
+      cb(new Error('Invalid file extension. Only .jpg, .jpeg, .png, .webp allowed.'));
+      return;
+    }
+
+    cb(null, true);
   },
 });
 

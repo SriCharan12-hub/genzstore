@@ -5,15 +5,15 @@ import { useWishlistStore } from '@/store/useWishlistStore';
 import ProductCard from '@/components/product/ProductCard';
 
 // Mock product data lookup — in production, fetch from API by IDs
-const productMap: Record<string, { id: string; name: string; slug: string; price: number; image: string; category: string; ratings: number }> = {
-  '1': { id: '1', name: 'Cyber Hoodie', slug: 'cyber-hoodie', price: 120, image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=687&auto=format&fit=crop', category: 'Hoodies', ratings: 4.5 },
-  '2': { id: '2', name: 'Urban Joggers', slug: 'urban-joggers', price: 85, image: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=687&auto=format&fit=crop', category: 'Bottoms', ratings: 4.2 },
-  '3': { id: '3', name: 'Vanguard Jacket', slug: 'vanguard-jacket', price: 250, image: 'https://images.unsplash.com/photo-1601333144130-8cbb312386b6?q=80&w=687&auto=format&fit=crop', category: 'Outerwear', ratings: 4.8 },
-  '4': { id: '4', name: 'Matrix Tee', slug: 'matrix-tee', price: 45, image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=687&auto=format&fit=crop', category: 'Tees', ratings: 4.0 },
-  '5': { id: '5', name: 'Noir Cap', slug: 'noir-cap', price: 35, image: 'https://images.unsplash.com/photo-1588850561407-ed78c334e67a?q=80&w=687&auto=format&fit=crop', category: 'Accessories', ratings: 4.3 },
-  '6': { id: '6', name: 'Arc Windbreaker', slug: 'arc-windbreaker', price: 195, image: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?q=80&w=687&auto=format&fit=crop', category: 'Outerwear', ratings: 4.6 },
-  '7': { id: '7', name: 'Haze Crewneck', slug: 'haze-crewneck', price: 90, image: 'https://images.unsplash.com/photo-1578681994506-b8f463449011?q=80&w=687&auto=format&fit=crop', category: 'Hoodies', ratings: 4.1 },
-  '8': { id: '8', name: 'Drift Shorts', slug: 'drift-shorts', price: 55, image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?q=80&w=687&auto=format&fit=crop', category: 'Bottoms', ratings: 3.9 },
+const productMap: Record<string, any> = {
+  '1': { _id: '1', id: '1', name: 'Cyber Hoodie', slug: 'cyber-hoodie', price: 120, image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=687&auto=format&fit=crop', category: 'Hoodies', ratings: 4.5, stock: 10 },
+  '2': { _id: '2', id: '2', name: 'Urban Joggers', slug: 'urban-joggers', price: 85, image: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=687&auto=format&fit=crop', category: 'Bottoms', ratings: 4.2, stock: 15 },
+  '3': { _id: '3', id: '3', name: 'Vanguard Jacket', slug: 'vanguard-jacket', price: 250, image: 'https://images.unsplash.com/photo-1601333144130-8cbb312386b6?q=80&w=687&auto=format&fit=crop', category: 'Outerwear', ratings: 4.8, stock: 8 },
+  '4': { _id: '4', id: '4', name: 'Matrix Tee', slug: 'matrix-tee', price: 45, image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=687&auto=format&fit=crop', category: 'Tees', ratings: 4.0, stock: 20 },
+  '5': { _id: '5', id: '5', name: 'Noir Cap', slug: 'noir-cap', price: 35, image: 'https://images.unsplash.com/photo-1588850561407-ed78c334e67a?q=80&w=687&auto=format&fit=crop', category: 'Accessories', ratings: 4.3, stock: 25 },
+  '6': { _id: '6', id: '6', name: 'Arc Windbreaker', slug: 'arc-windbreaker', price: 195, image: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?q=80&w=687&auto=format&fit=crop', category: 'Outerwear', ratings: 4.6, stock: 12 },
+  '7': { _id: '7', id: '7', name: 'Haze Crewneck', slug: 'haze-crewneck', price: 90, image: 'https://images.unsplash.com/photo-1578681994506-b8f463449011?q=80&w=687&auto=format&fit=crop', category: 'Hoodies', ratings: 4.1, stock: 18 },
+  '8': { _id: '8', id: '8', name: 'Drift Shorts', slug: 'drift-shorts', price: 55, image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?q=80&w=687&auto=format&fit=crop', category: 'Bottoms', ratings: 3.9, stock: 22 },
 };
 
 export default function WishlistPage() {

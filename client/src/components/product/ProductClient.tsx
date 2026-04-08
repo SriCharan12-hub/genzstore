@@ -2,29 +2,78 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Heart, Star, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Heart, Star, Minus, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useCartStore } from '@/store/useCartStore';
 import { useWishlistStore } from '@/store/useWishlistStore';
 import { formatPrice } from '@/lib/utils';
 import ProductCard from '@/components/product/ProductCard';
 import { toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
 
 export default function ProductClient({ product, relatedProducts }: { product: any; relatedProducts: any[] }) {
-  const router = useRouter();
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState(product.colors?.[0]?.name || '');
   const [quantity, setQuantity] = useState(1);
+  const [clickTimestamps, setClickTimestamps] = useState<number[]>([]);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const stock = product.stock && product.stock > 0 ? product.stock : 0;
+  const isOutOfStock = stock === 0;
   const addItem = useCartStore((s) => s.addItem);
   const wishlistToggle = useWishlistStore((s) => s.toggle);
   const isWished = useWishlistStore((s) => s.has(product._id));
 
+  const checkRateLimit = (): boolean => {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    
+    // Filter timestamps from last minute
+    const recentClicks = clickTimestamps.filter(timestamp => timestamp > oneMinuteAgo);
+    
+    // If more than 10 clicks in the last minute, block
+    if (recentClicks.length >= 10) {
+      setIsRateLimited(true);
+      toast.error('Too many add to cart clicks. Please wait a moment.');
+      return false;
+    }
+    
+    // Add current click timestamp
+    setClickTimestamps([...recentClicks, now]);
+    
+    // Reset rate limited flag after some time
+    if (isRateLimited) {
+      setIsRateLimited(false);
+    }
+    
+    return true;
+  };
+
   const handleAddToCart = () => {
+    // Check rate limit first
+    if (!checkRateLimit()) {
+      return;
+    }
+
     if (!selectedSize) {
       toast.error('Please select a size');
       return;
     }
+    
+    if (isOutOfStock) {
+      toast.error('This product is out of stock');
+      return;
+    }
+    
+    if (quantity <= 0) {
+      toast.error('Please select a valid quantity');
+      return;
+    }
+    
+    if (quantity > stock) {
+      toast.error(`Only ${stock} available in stock`);
+      return;
+    }
+
     addItem({
       id: product._id,
       name: product.name,
@@ -35,7 +84,12 @@ export default function ProductClient({ product, relatedProducts }: { product: a
       quantity,
       stock: product.stock,
     });
-    toast.success('Added to cart!');
+    toast.success(`Added ${quantity} x ${product.name} to cart`);
+  };
+
+  const handleQuantityChange = (newQuantity: number) => {
+    const clamped = Math.max(1, Math.min(stock, newQuantity));
+    setQuantity(clamped);
   };
 
   const handleWishlistToggle = () => {
@@ -47,9 +101,9 @@ export default function ProductClient({ product, relatedProducts }: { product: a
     <div className="pt-20 pb-16">
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-6 py-4">
-        <a href="/products" className="text-sm text-gray-500 hover:text-black">
+        <Link href="/products" className="text-sm text-gray-500 hover:text-black">
           Products
-        </a>
+        </Link>
         <span className="text-sm text-gray-400 mx-2">/</span>
         <span className="text-sm font-medium">{product.name}</span>
       </div>
@@ -167,14 +221,27 @@ export default function ProductClient({ product, relatedProducts }: { product: a
             {/* Quantity */}
             <div>
               <label className="text-sm font-bold uppercase mb-3 block">Quantity</label>
-              <div className="flex items-center border border-gray-200 w-fit">
-                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-100">
-                  <Minus size={18} />
-                </button>
-                <span className="px-6 font-bold">{quantity}</span>
-                <button onClick={() => setQuantity(quantity + 1)} className="p-2 hover:bg-gray-100">
-                  <Plus size={18} />
-                </button>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center border border-gray-200 w-fit">
+                  <button 
+                    onClick={() => handleQuantityChange(quantity - 1)}
+                    disabled={quantity <= 1}
+                    className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Minus size={18} />
+                  </button>
+                  <span className="px-6 font-bold">{quantity}</span>
+                  <button 
+                    onClick={() => handleQuantityChange(quantity + 1)}
+                    disabled={quantity >= stock}
+                    className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+                <span className={`text-sm font-semibold ${isOutOfStock ? 'text-red-600' : stock < 5 ? 'text-orange-600' : 'text-green-600'}`}>
+                  {isOutOfStock ? 'Out of Stock' : stock < 5 ? `Only ${stock} left!` : `${stock} in stock`}
+                </span>
               </div>
             </div>
           </div>
@@ -183,9 +250,15 @@ export default function ProductClient({ product, relatedProducts }: { product: a
           <div className="flex gap-4 mb-8">
             <button
               onClick={handleAddToCart}
-              className="flex-1 bg-black text-white py-4 font-bold uppercase tracking-wider hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
+              disabled={isOutOfStock || quantity > stock}
+              className={`flex-1 py-4 font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                isOutOfStock || quantity > stock
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-black text-white hover:bg-gray-900'
+              }`}
             >
-              <ShoppingCart size={20} /> Add to Cart
+              <ShoppingCart size={20} /> 
+              {isOutOfStock ? 'Stock Unavailable' : quantity > stock ? 'Exceeds Stock' : 'Add to Cart'}
             </button>
             <button
               onClick={handleWishlistToggle}
