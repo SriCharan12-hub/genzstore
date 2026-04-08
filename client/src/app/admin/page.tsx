@@ -1274,6 +1274,24 @@ export default function AdminDashboard() {
                     <ShoppingCart className="w-5 h-5 text-blue-600" />
                     Products Ordered ({selectedOrder.items.length})
                   </h3>
+                  
+                  {/* Sizes Summary */}
+                  {selectedOrder.items.some((item: any) => item.size) && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-xs font-bold text-blue-900 mb-2">📦 SIZES BOOKED:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedOrder.items.map((item: any, idx: number) => (
+                          item.size && (
+                            <span key={idx} className="inline-block px-3 py-1 bg-blue-200 text-blue-900 font-bold text-xs rounded-full">
+                              {item.name} - Size {item.size}
+                              {item.color && ` (${item.color})`}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="space-y-3">
                     {selectedOrder.items.map((item, idx) => (
                       <div key={idx} className="flex gap-3 p-3 bg-white rounded border border-gray-200">
