@@ -47,8 +47,18 @@ router.post('/', protect, orderLimiter, async (req: AuthRequest, res: Response) 
         return;
       }
       
-      // CRITICAL: Use server product price, not client-provided price
-      calculatedTotal += product.price * item.quantity;
+      // CRITICAL: Use correct price (size-specific or base price)
+      let itemPrice = product.price;
+      
+      // If item has size and product has size pricing, use size-specific price
+      if (item.size && product.sizePricing && product.sizePricing.length > 0) {
+        const sizePrice = product.sizePricing.find((sp: any) => sp.size === item.size);
+        if (sizePrice) {
+          itemPrice = sizePrice.price;
+        }
+      }
+      
+      calculatedTotal += itemPrice * item.quantity;
       
       // Check stock availability
       if (product.stock < item.quantity) {
