@@ -222,19 +222,28 @@ export default function ProductClient({ product, relatedProducts }: { product: a
               <div>
                 <label className="text-sm font-bold uppercase mb-3 block">Size</label>
                 <div className="grid grid-cols-4 gap-2">
-                  {product.sizes.map((size: string) => (
-                    <button
-                      key={size}
-                      onClick={() => handleSizeSelect(size)}
-                      className={`py-3 border-2 font-bold uppercase text-xs tracking-wider transition-all ${
-                        selectedSize === size
-                          ? 'bg-black text-white border-black'
-                          : 'border-gray-200 hover:border-black'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {product.sizes.map((size: string) => {
+                    // Get price for this size
+                    const sizePrice = product.sizePricing?.find((sp: any) => sp.size === size);
+                    const price = sizePrice ? sizePrice.price : product.price;
+                    
+                    return (
+                      <button
+                        key={size}
+                        onClick={() => handleSizeSelect(size)}
+                        className={`py-3 border-2 font-bold uppercase text-xs tracking-wider transition-all flex flex-col items-center gap-1 ${
+                          selectedSize === size
+                            ? 'bg-black text-white border-black'
+                            : 'border-gray-200 hover:border-black'
+                        }`}
+                      >
+                        <span>{size}</span>
+                        <span className={`text-[10px] font-semibold ${selectedSize === size ? 'text-gray-200' : 'text-gray-600'}`}>
+                          {formatPrice(price)}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
