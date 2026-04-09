@@ -29,6 +29,7 @@ export default function ProductClient({ product, relatedProducts }: { product: a
   // Update price when size changes
   const handleSizeSelect = (size: string) => {
     setSelectedSize(size);
+    setQuantity(0);
     
     // Find size-specific pricing if available
     if (product.sizePricing && product.sizePricing.length > 0) {
