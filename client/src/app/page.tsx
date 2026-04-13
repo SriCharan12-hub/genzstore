@@ -23,7 +23,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1000';
 async function fetchFeaturedProducts() {
   try {
     const res = await fetch(`${API_URL}/api/products?limit=8`, {
-      next: { revalidate: 300 } // ISR - revalidate every 5 minutes
+      next: { revalidate: process.env.NODE_ENV === 'development' ? 0 : 300 } // ISR - revalidate every 5 minutes in prod, no cache in dev
     });
     if (!res.ok) throw new Error('Failed to fetch products');
     const data = await res.json();

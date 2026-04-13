@@ -24,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased text-black bg-white`}>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning className={`${inter.variable} ${outfit.variable} font-sans antialiased text-black bg-white`}>
         <AuthProvider>
           <Toaster position="bottom-center" toastOptions={{ duration: 5000, style: { background: '#000', color: '#fff', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: '0' } }} />
           <Navbar />

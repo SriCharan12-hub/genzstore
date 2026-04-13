@@ -72,6 +72,8 @@ export const authOptions: NextAuthOptions = {
           const data = await res.json();
 
           if (res.ok && data.success) {
+            // Store the backend MongoDB _id so it becomes token.id -> session.user.id
+            (user as CustomUser).id = data.user.id || data.user._id;
             (user as CustomUser).role = data.user.role;
             (user as CustomUser).token = data.token;
           } else {
@@ -91,6 +93,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         const customUser = user as unknown as CustomUser;
+        // Persist id so session.user.id is always available
+        token.id = customUser.id || user.id;
         token.role = customUser.role;
         token.accessToken = customUser.token;
         token.email = customUser.email;
@@ -99,6 +103,8 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        // Forward id into session.user so components can do session.user.id
+        (session as any).user.id = token.id || token.sub;
         (session as any).user.role = token.role;
         (session as any).user.accessToken = token.accessToken;
       }

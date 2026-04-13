@@ -10,7 +10,7 @@ const router = express.Router();
 // GET /api/products — with Redis caching, filtering, search, pagination
 router.get('/', searchLimiter, async (req: AuthRequest, res: Response) => {
   try {
-    const { category, minPrice, maxPrice, search, sort, page = '1', limit = '12' } = req.query as Record<string, string>;
+    const { category, gender, minPrice, maxPrice, search, sort, page = '1', limit = '12' } = req.query as Record<string, string>;
     const cacheKey = `products:${JSON.stringify(req.query)}`;
 
     if (redisClient) {
@@ -30,6 +30,14 @@ router.get('/', searchLimiter, async (req: AuthRequest, res: Response) => {
     if (category) {
       // Case-insensitive category search
       query.category = { $regex: category, $options: 'i' };
+    }
+    if (gender && gender !== 'all') {
+      // men/women shows gender-specific + unisex; 'unisex' shows only unisex
+      if (gender === 'men' || gender === 'women') {
+        query.gender = { $in: [gender, 'unisex'] };
+      } else {
+        query.gender = gender;
+      }
     }
     if (minPrice || maxPrice) query.price = { ...(minPrice && { $gte: Number(minPrice) }), ...(maxPrice && { $lte: Number(maxPrice) }) };
     if (search) query.$text = { $search: search };

@@ -27,6 +27,7 @@ export interface IProduct extends Document {
   comparePrice?: number;
   category: string;
   subcategory?: string;
+  gender: 'men' | 'women' | 'unisex';
   brand: string;
   thumbnail: string;
   images: string[];
@@ -63,6 +64,7 @@ const ProductSchema = new Schema<IProduct>(
     comparePrice: { type: Number },
     category: { type: String, required: true },
     subcategory: { type: String },
+    gender: { type: String, enum: ['men', 'women', 'unisex'], default: 'unisex' },
     brand: { type: String, required: true },
     thumbnail: { type: String, default: '' },
     images: [{ type: String }],
@@ -94,6 +96,7 @@ ProductSchema.index({ name: 'text', description: 'text', brand: 'text', tags: 't
 // Indexes for filtering and sorting performance
 ProductSchema.index({ category: 1, price: 1 });
 ProductSchema.index({ category: 1, isActive: 1 });
+ProductSchema.index({ gender: 1, isActive: 1 });
 ProductSchema.index({ isFeatured: 1, isActive: 1 });
 ProductSchema.index({ createdAt: -1 });
 ProductSchema.index({ ratings: -1 });

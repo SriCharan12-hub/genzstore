@@ -36,7 +36,8 @@ interface UserSession {
 
 const emptyForm = {
   name: '', slug: '', price: '', comparePrice: '', category: '',
-  brand: '', stock: '', description: '', images: '', sizes: '', isActive: true,
+  brand: '', stock: '', description: '', images: '', sizes: '',
+  isActive: true, gender: 'unisex' as 'men' | 'women' | 'unisex',
 };
 
 const statusColors: Record<string, string> = {
@@ -349,6 +350,7 @@ export default function AdminDashboard() {
       images: (product.images || []).join(', '),
       sizes: (product.sizes || []).join(', '),
       isActive: product.isActive,
+      gender: ((product as any).gender || 'unisex') as 'men' | 'women' | 'unisex',
     });
     // Pre-populate size pricing rows
     const existingSizePricing = (product as any).sizePricing || [];
@@ -426,15 +428,35 @@ export default function AdminDashboard() {
     );
   };
 
-  // Handle file selection with previews
+  // Handle file selection with previews — ACCUMULATE, not replace
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    setSelectedFiles(files);
-    setUploadedThumbnail('');
-    setUploadedImages([]);
-    const urls = files.map((f) => URL.createObjectURL(f));
-    setPreviews(urls);
+    const newFiles = Array.from(e.target.files || []);
+    if (newFiles.length === 0) return;
+    // Accumulate files and previews
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    const newUrls = newFiles.map((f) => URL.createObjectURL(f));
+    setPreviews((prev) => [...prev, ...newUrls]);
+    // Reset the input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  // Remove a single image from the preview and selected files
+  const removePreview = (index: number) => {
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
+    // If the index is within selected files range (new files)
+    const existingCount = uploadedImages.length + (uploadedThumbnail ? 1 : 0);
+    const newFileIndex = index - existingCount;
+    if (newFileIndex >= 0) {
+      setSelectedFiles((prev) => prev.filter((_, i) => i !== newFileIndex));
+    } else {
+      // Removing an already-uploaded image
+      if (index === 0 && uploadedThumbnail) {
+        setUploadedThumbnail('');
+      } else {
+        const imgIdx = uploadedThumbnail ? index - 1 : index;
+        setUploadedImages((prev) => prev.filter((_, i) => i !== imgIdx));
+      }
+    }
   };
 
   // Upload files to Cloudinary via backend
@@ -484,6 +506,7 @@ export default function AdminDashboard() {
         price: Number(form.price),
         comparePrice: form.comparePrice ? Number(form.comparePrice) : undefined,
         category: form.category,
+        gender: form.gender,
         brand: form.brand,
         stock: Number(form.stock),
         description: form.description,
@@ -870,6 +893,18 @@ export default function AdminDashboard() {
                         </select>
                       </div>
                       <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Gender *</label>
+                        <select
+                          value={form.gender}
+                          onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as 'men' | 'women' | 'unisex' }))}
+                          className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white"
+                        >
+                          <option value="unisex">Unisex (All)</option>
+                          <option value="men">Men</option>
+                          <option value="women">Women</option>
+                        </select>
+                      </div>
+                      <div>
                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Price (₹) *</label>
                         <input
                           type="number" min="0" step="0.01"
@@ -1090,11 +1125,19 @@ export default function AdminDashboard() {
                         {previews.length > 0 && (
                           <div className="mt-3 grid grid-cols-4 gap-2">
                             {previews.map((src, i) => (
-                              <div key={i} className="relative aspect-square border border-gray-100 overflow-hidden">
+                              <div key={i} className="relative aspect-square border border-gray-100 overflow-hidden group">
                                 <img src={src} alt={`preview-${i}`} className="w-full h-full object-cover" />
                                 {i === 0 && (
                                   <span className="absolute top-1 left-1 bg-black text-white text-[9px] font-bold px-1.5 py-0.5 uppercase">Thumb</span>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={() => removePreview(i)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
+                                  title="Remove this image"
+                                >
+                                  ×
+                                </button>
                               </div>
                             ))}
                           </div>
